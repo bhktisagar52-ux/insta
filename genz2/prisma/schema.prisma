@@ -1,0 +1,477 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+// User model
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  name      String?
+  bio       String?
+  avatar    String?
+  website   String?
+  isPrivate Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  posts                 Post[]
+  reels                 Reel[]
+  likes                 Like[]
+  videoLikes            VideoLike[]
+  bookmarks             Bookmark[]
+  videoBookmarks        VideoBookmark[]
+  comments              Comment[]
+  commentLikes          CommentLike[]
+  followers             Follow[]       @relation("UserFollowers")
+  following             Follow[]       @relation("UserFollowing")
+  notifications         Notification[] @relation("NotificationUser")
+  sentMessages          Message[]      @relation("MessageSender")
+  receivedMessages      Message[]      @relation("MessageReceiver")
+  stories               Story[]
+  storyViews            StoryView[]
+  storyLikes            StoryLike[]
+  reelViews             ReelView[]
+  videoComments         VideoComment[]
+  notificationsReceived Notification[] @relation("NotificationActor")
+  reactions             Reaction[]
+  videoAnalytics        VideoAnalytics[]
+
+
+  @@index([username])
+  @@index([email])
+}
+
+// Reel model (Instagram Reels)
+model Reel {
+  id            String   @id @default(cuid())
+  userId        String
+  videoUrl      String
+  thumbnailUrl  String?
+  caption       String?
+  location      String?
+  duration      Int
+  width         Int
+  height        Int
+  aspectRatio   String?
+  audioUrl      String?
+  musicName     String?
+  mentionIds    String?
+  isPrivate     Boolean  @default(false)
+  allowComments Boolean  @default(true)
+  allowDuet     Boolean  @default(false)
+  allowRemix    Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  publishedAt   DateTime @default(now())
+  expiresAt     DateTime?
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         VideoLike[]
+  bookmarks     VideoBookmark[]
+  comments      VideoComment[]
+  views         ReelView[]
+  analytics     VideoAnalytics[]
+  hashtags      VideoHashtagReel[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+// VideoLike model (for Reels)
+model VideoLike {
+  id        String   @id @default(cuid())
+  userId    String
+  reelId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+  @@index([reelId])
+  @@index([userId])
+}
+
+// VideoBookmark model (for Reels)
+model VideoBookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  reelId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reelId])
+  @@index([reelId])
+  @@index([userId])
+}
+
+// VideoComment model (for Reels)
+model VideoComment {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  reelId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel    Reel           @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  parent  VideoComment?  @relation("VideoCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies VideoComment[] @relation("VideoCommentReplies")
+
+  @@index([reelId])
+  @@index([userId])
+}
+
+// ReelView model (track video views)
+model ReelView {
+  id       String   @id @default(cuid())
+  reelId   String
+  userId   String
+  viewedAt DateTime @default(now())
+
+  // Relations
+  viewer User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reel   Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+}
+
+// Post model
+model Post {
+  id        String   @id @default(cuid())
+  caption   String?
+  imageUrl  String
+  location  String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         Like[]
+  bookmarks     Bookmark[]
+  comments      Comment[]
+  hashtags      PostHashtag[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Comment model (for photo posts)
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  postId    String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+  likes   CommentLike[]
+
+  @@index([postId])
+  @@index([userId])
+}
+
+// CommentLike model (for post comments)
+model CommentLike {
+  id        String   @id @default(cuid())
+  userId    String
+  commentId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commentId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+
+
+// Like model (for photo posts)
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([postId])
+  @@index([userId])
+}
+
+// Follow model
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  status      String   @default("accepted") // "pending", "accepted", "rejected"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([status])
+}
+
+// Notification model
+model Notification {
+  id        String   @id @default(cuid())
+  type      String
+  userId    String
+  actorId   String?
+  postId    String?
+  reelId    String?
+  storyId   String?
+  commentId String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User     @relation("NotificationUser", fields: [userId], references: [id], onDelete: Cascade)
+  actor   User?    @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reel    Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  story   Story?   @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// Bookmark model
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+// Message model
+model Message {
+  id         String     @id @default(cuid())
+  content    String?
+  imageUrl   String?
+  senderId   String
+  receiverId String
+  replyToId  String?
+  storyId    String?
+  read       Boolean    @default(false)
+  delivered  Boolean    @default(false)
+  readAt     DateTime?
+  createdAt  DateTime   @default(now())
+
+  // Relations
+  sender    User       @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver  User       @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  replyTo   Message?   @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: Cascade)
+  replies   Message[]  @relation("MessageReplies")
+  story     Story?     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
+}
+
+// Reaction model
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String
+  userId    String
+  messageId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+// Story model
+model Story {
+  id          String   @id @default(cuid())
+  imageUrl    String
+  userId      String
+  caption     String?
+  textOverlay String?
+  textPosition Json?
+  textColor   String?
+  fontSize    Int?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views         StoryView[]
+  likes         StoryLike[]
+  messages      Message[]
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// StoryView model
+model StoryView {
+  id       String   @id @default(cuid())
+  storyId  String
+  userId   String
+  viewedAt DateTime @default(now())
+  reaction String?
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+}
+
+// StoryLike model
+model StoryLike {
+  id       String   @id @default(cuid())
+  storyId  String
+  userId   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([storyId, userId])
+  @@index([storyId])
+  @@index([userId])
+}
+
+// Hashtag model (for photo posts)
+model Hashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  posts PostHashtag[]
+
+  @@index([name])
+}
+
+// Post-Hashtag junction
+model PostHashtag {
+  id        String   @id @default(cuid())
+  postId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  hashtag Hashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, hashtagId])
+  @@index([hashtagId])
+  @@index([postId])
+}
+
+// Video Analytics model
+model VideoAnalytics {
+  id             String   @id @default(cuid())
+  reelId         String
+  userId         String
+  views          Int      @default(0)
+  likes          Int      @default(0)
+  comments       Int      @default(0)
+  shares         Int      @default(0)
+  watchTime      Float    @default(0)
+  completionRate Float    @default(0)
+  engagementRate Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  reel Reel @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, userId])
+  @@index([reelId])
+  @@index([userId])
+}
+
+// Video Hashtag model
+model VideoHashtag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  // Relations
+  reels VideoHashtagReel[]
+
+  @@index([name])
+}
+
+// Video-Hashtag junction
+model VideoHashtagReel {
+  id        String   @id @default(cuid())
+  reelId    String
+  hashtagId String
+  createdAt DateTime @default(now())
+
+  // Relations
+  reel    Reel        @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  hashtag VideoHashtag @relation(fields: [hashtagId], references: [id], onDelete: Cascade)
+
+  @@unique([reelId, hashtagId])
+  @@index([hashtagId])
+  @@index([reelId])
+}
