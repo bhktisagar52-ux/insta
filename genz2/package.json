@@ -32,7 +32,9 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-toast": "^1.2.14",
     "tailwind-merge": "^3.3.1",
-    "cloudinary": "^2.5.1"
+    "cloudinary": "^2.5.1",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.7.5"
 
 
 
