@@ -1,5 +1,6 @@
 const express = require('express')
 const { createServer } = require('http')
+const { parse } = require('url')
 const next = require('next')
 const path = require('path')
 
@@ -15,7 +16,8 @@ app.prepare().then(() => {
 
   // Handle all other requests with Next.js
   server.all('*', (req, res) => {
-    return handle(req, res)
+    const parsedUrl = parse(req.url, true)
+    return handle(req, res, parsedUrl)
   })
 
   const httpServer = createServer(server)
