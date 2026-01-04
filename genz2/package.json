@@ -84,14 +84,16 @@
   "postcss": "^8.4.38",
   "autoprefixer": "^10.4.19"
 },
-  "devDependencies": {
+ "devDependencies": {
   "@eslint/eslintrc": "^3",
-  "@types/react": "^19",
-  "@types/react-dom": "^19",
+  "@types/react": "^18",
+  "@types/react-dom": "^18",
   "eslint": "^9",
   "eslint-config-next": "15.3.5",
-  "tailwindcss": "^4",
-  "typescript": "^5"
+  "tailwindcss": "^3.4.17",
+  "postcss": "^8.4.38",
+  "autoprefixer": "^10.4.19",
+  "typescript": "^5.3.3"
 }
 
 
